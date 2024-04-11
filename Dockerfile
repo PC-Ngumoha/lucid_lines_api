@@ -11,11 +11,14 @@ EXPOSE 8000
 
 WORKDIR /app
 
-RUN python -m venv /env && \
+RUN set -x && apt update && \
+  apt install -y --no-install-recommends libpq-dev libpq5 gcc python3.11-dev && \
+  python -m venv /env && \
   /env/bin/pip install --upgrade pip && \
   /env/bin/pip install --no-cache-dir -r /tmp/requirements.txt && \
   /env/bin/pip install --no-cache-dir -r /tmp/requirements.dev.txt && \
   adduser --disabled-password --no-create-home dev-user && \
+  apt purge -y --auto-remove gcc libpq-dev && \
   rm -rf /tmp
 
 ENV PATH="/env/bin/:$PATH"
