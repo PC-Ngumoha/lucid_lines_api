@@ -1,6 +1,7 @@
 """
 Definition of all the DB models that are important for this app to function.
 """
+from datetime import date
 from typing import Any
 
 from django.contrib.auth.models import (
@@ -8,6 +9,7 @@ from django.contrib.auth.models import (
   PermissionsMixin,
   BaseUserManager,
 )
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -57,3 +59,19 @@ class User(AbstractBaseUser, PermissionsMixin, Commons):
     def __str__(self) -> str:
         """String representation"""
         return self.email
+
+
+class Entry(Commons):
+    """Journal entries DB model"""
+    title = models.CharField(max_length=255,
+                             default=date.today().strftime('%d %B, %Y'))
+    content = models.TextField()
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='entries',
+    )
+
+    def __str__(self) -> str:
+        """String representation"""
+        return f'{self.created_at}: {self.title}'
