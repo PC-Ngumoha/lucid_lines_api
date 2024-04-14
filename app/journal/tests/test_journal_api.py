@@ -1,7 +1,9 @@
 """
 Tests to simulate requests made to the journal API.
 """
-from typing import Any
+from typing import (
+    Any,
+)
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -109,3 +111,57 @@ class PrivateJournalAPITests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         with self.assertRaises(Entry.DoesNotExist):
             entry.refresh_from_db()
+
+    def test_create_entry_with_tags(self) -> None:
+        """Tests that we can create entries along with their tags specified.
+        """
+        payload = {
+            'title': 'Test title',
+            'content': 'Test content',
+            'tags': [{'name': 'DailyJournal'},
+                     {'name': 'Prompt'},
+                     {'name': 'Goosebumps'}],
+        }
+        res = self.client.post(JOURNAL_URL, data=payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        entry = Entry.objects.filter(author=self.user,
+                                     title=payload.get('title')).first()
+        serializer = EntrySerializer(entry)
+        self.assertIn('tags', serializer.data)
+        tags = serializer.data.get('tags')
+        payload_tags = payload.get('tags')
+        for tag, p_tag in zip(tags, payload_tags):
+            self.assertEqual(tag['name'], p_tag['name'])
+
+    def test_update_tags_on_entry(self) -> None:
+        """Tests that we can update the list of tags through the entry
+        API."""
+        payload = {
+            'title': 'Test title',
+            'content': 'Test content',
+            'tags': [{'name': 'DailyJournal'},
+                     {'name': 'Prompt'},
+                     {'name': 'Goosebumps'}],
+        }
+        self.client.post(JOURNAL_URL, data=payload)
+        entry = Entry.objects.filter(author=self.user,
+                                     title=payload.get('title')).first()
+        update = {
+            'title': 'Test title',
+            'content': 'Test content',
+            'tags': [{'name': 'DailyJournal'},
+                     {'name': 'Goosebumps'},
+                     {'name': 'Spinal'}],
+        }
+        url = detail_url(entry.id)
+        res = self.client.put(url, data=update)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        entry.refresh_from_db()
+        serializer = EntrySerializer(entry)
+        self.assertIn('tags', serializer.data)
+        tags = serializer.data.get('tags')
+        payload_tags = update.get('tags')
+        for tag, p_tag in zip(tags, payload_tags):
+            self.assertEqual(tag['name'], p_tag['name'])

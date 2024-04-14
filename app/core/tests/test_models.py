@@ -11,6 +11,7 @@ from django.test import TestCase
 
 from core.models import (
     Entry,
+    Tag,
 )
 
 User = get_user_model()
@@ -25,6 +26,16 @@ def create_user(**params) -> Any:
     }
     payload.update(params)
     return User.objects.create(**payload)
+
+
+def create_entry(user: Any, **params) -> Any:
+    """Creates Entry objects for testing purposes."""
+    payload = {
+        'title': 'An entry',
+        'content': 'Entry content',
+    }
+    payload.update(params)
+    return Entry.objects.create(author=user, **payload)
 
 
 class TestDBModels(TestCase):
@@ -117,7 +128,7 @@ class TestDBModels(TestCase):
             'content': 'This is a new entry aimed at testing this model.',
         }
         user = create_user()
-        entry = Entry.objects.create(author=user, **payload)
+        entry = create_entry(user=user, **payload)
 
         self.assertIsNotNone(entry)
 
@@ -151,7 +162,50 @@ class TestDBModels(TestCase):
             'content': 'This is a new entry aimed at testing this model.',
         }
         user = create_user()
-        entry = Entry.objects.create(author=user, **payload)
+        entry = create_entry(user=user, **payload)
 
         self.assertIsNotNone(entry.created_at)
         self.assertIsNotNone(entry.updated_at)
+
+    def test_create_tags_in_DB(self) -> None:
+        """Tests that we can create tags successfully."""
+        tag_names = ('Picnic', 'Sunday vibes', 'happiness', 'at_peace')
+        for tag_name in tag_names:
+            Tag.objects.create(name=tag_name)
+
+        tags = Tag.objects.all()
+        self.assertEqual(tags.count(), len(tag_names))
+        self.assertEqual(tags[0].name, tag_names[0])
+
+    def test_tags_must_be_unique(self) -> None:
+        """Tests that all Tag objects must be unique"""
+        Tag.objects.create(name='A Tag')
+
+        with self.assertRaises(IntegrityError):
+            Tag.objects.create(name='A Tag')
+
+    def test_entry_can_have_many_tags(self) -> None:
+        """Tests that all entry objects must have many tags.
+        """
+        user = create_user()
+        entry = create_entry(user=user)
+
+        tag_names = ('Picnic', 'Sunday vibes', 'happiness', 'at_peace')
+        for tag_name in tag_names:
+            tag = Tag.objects.create(name=tag_name)
+            entry.tags.add(tag)
+
+        self.assertEqual(entry.tags.count(), len(tag_names))
+
+    def test_tag_can_have_many_entries(self) -> None:
+        """Tests that all tag objects can have many entries.
+        """
+        user = create_user()
+        tag = Tag.objects.create(name='Test')
+
+        entry_titles = ('Entry #1', 'Entry #1', 'Entry #1', 'Entry #1')
+        for entry_title in entry_titles:
+            entry = create_entry(user=user, title=entry_title)
+            entry.tags.add(tag)
+
+        self.assertEqual(tag.entries.count(), len(entry_titles))

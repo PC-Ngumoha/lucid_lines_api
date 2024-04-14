@@ -5,6 +5,5 @@ core/models.py
 user/tests/test_user_api.py
 user/serializers.py
 user/views.py
-journal/tests/test_journal_api.py
 journal/serializers.py
 journal/views.py

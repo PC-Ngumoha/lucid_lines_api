@@ -61,6 +61,15 @@ class User(AbstractBaseUser, PermissionsMixin, Commons):
         return self.email
 
 
+class Tag(models.Model):
+    """Tags to provide more context for each entry"""
+    name = models.CharField(max_length=255, unique=True)
+
+    def __str__(self) -> str:
+        """prints/returns tag_name"""
+        return self.name
+
+
 class Entry(Commons):
     """Journal entries DB model"""
     title = models.CharField(max_length=255,
@@ -71,6 +80,7 @@ class Entry(Commons):
         on_delete=models.CASCADE,
         related_name='entries',
     )
+    tags = models.ManyToManyField(Tag, related_name='entries', default=[])
 
     def __str__(self) -> str:
         """String representation"""

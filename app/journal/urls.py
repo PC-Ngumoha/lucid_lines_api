@@ -13,4 +13,5 @@ router.register('journal', views.ManageJournalViewSet, basename='journal')
 
 urlpatterns = [
   path('', include(router.urls)),
+  path('tags/', views.TagListView.as_view(), name='tags'),
 ]
