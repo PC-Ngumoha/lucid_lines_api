@@ -12,14 +12,25 @@ EXPOSE 8000
 WORKDIR /app
 
 RUN set -x && apt update && \
-  apt install -y --no-install-recommends libpq-dev libpq5 gcc python3.11-dev && \
+  apt install -y --no-install-recommends \
+  libpq-dev \
+  libpq5 \
+  gcc \
+  python3.11-dev \
+  libjpeg-dev \
+  zlib1g-dev \
+  libpng-dev && \
   python -m venv /env && \
   /env/bin/pip install --upgrade pip && \
   /env/bin/pip install --no-cache-dir -r /tmp/requirements.txt && \
   /env/bin/pip install --no-cache-dir -r /tmp/requirements.dev.txt && \
-  adduser --disabled-password --no-create-home dev-user && \
   apt purge -y --auto-remove gcc libpq-dev && \
-  rm -rf /tmp
+  rm -rf /tmp && \
+  adduser --disabled-password --no-create-home dev-user && \
+  mkdir -p /vol/web/static && \
+  mkdir -p /vol/web/media && \
+  chown -R dev-user:dev-user /vol && \
+  chmod -R 755 /vol
 
 ENV PATH="/env/bin/:$PATH"
 

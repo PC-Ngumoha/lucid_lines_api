@@ -1,6 +1,8 @@
 """
 Tests to simulate requests made to the journal API.
 """
+import os
+import tempfile
 from typing import (
     Any,
 )
@@ -11,6 +13,8 @@ from django.urls import reverse
 
 from rest_framework import status
 from rest_framework.test import APIClient
+
+from PIL import Image
 
 from core.models import (
     Entry,
@@ -26,6 +30,11 @@ JOURNAL_URL = reverse('journal:journal-list')
 def detail_url(entry_id: int) -> str:
     """Returns the detailed URL"""
     return reverse('journal:journal-detail', args=[entry_id])
+
+
+def image_upload_url(entry_id: int) -> str:
+    """Returns the URL for image uploads"""
+    return reverse('journal:journal-upload-image', args=[entry_id])
 
 
 def create_user(**params) -> Any:
@@ -165,3 +174,40 @@ class PrivateJournalAPITests(TestCase):
         payload_tags = update.get('tags')
         for tag, p_tag in zip(tags, payload_tags):
             self.assertEqual(tag['name'], p_tag['name'])
+
+
+class ImageUploadTests(TestCase):
+    """Tests Image upload API endpoint"""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = create_user()
+        self.client.force_authenticate(user=self.user)
+        self.entry = create_entry(user=self.user)
+
+    def tearDown(self) -> None:
+        self.entry.image.delete()
+
+    def test_upload_image_success(self) -> None:
+        """Tests that we can upload an image successfully."""
+        url = image_upload_url(self.entry.id)
+
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as image_file:
+            image = Image.new('RGB', (10, 10))
+            image.save(image_file, format='JPEG')
+            image_file.seek(0)
+            payload = {'image': image_file}
+            res = self.client.post(url, data=payload, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.entry.refresh_from_db()
+        self.assertTrue(os.path.exists(self.entry.image.path))
+
+    def test_upload_nonimage_failed(self) -> None:
+        """Tests that uploading anything apart from an image fails"""
+        url = image_upload_url(self.entry.id)
+        payload = {'image': 'CertainlyNotAnImageDude'}
+        res = self.client.post(url, data=payload, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

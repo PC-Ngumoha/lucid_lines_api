@@ -27,10 +27,11 @@ class TagSerializer(serializers.ModelSerializer):
 class EntrySerializer(serializers.ModelSerializer):
     """Serialize & Deserialize journal entries"""
     tags = TagSerializer(required=False, many=True)
+    image = serializers.ImageField(required=False)
 
     class Meta:
         model = Entry
-        fields = ['id', 'title', 'content', 'tags',
+        fields = ['id', 'title', 'content', 'tags', 'image',
                   'created_at', 'updated_at']
         extra_kwargs = {
             'id': {
@@ -70,3 +71,17 @@ class EntrySerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class EntryImageSerializer(serializers.ModelSerializer):
+    """Serialize & Deserialize entry image attachments."""
+
+    class Meta:
+        model = Entry
+        fields = ['id', 'image']
+        read_only_fields = ['id']
+        extra_kwargs = {
+            'image': {
+                'required': True,
+            },
+        }

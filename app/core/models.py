@@ -1,6 +1,8 @@
 """
 Definition of all the DB models that are important for this app to function.
 """
+import os
+import uuid
 from datetime import date
 from typing import Any
 
@@ -70,6 +72,13 @@ class Tag(models.Model):
         return self.name
 
 
+def upload_file_location(instance: Any, filename: str) -> str:
+    """Returns upload file location"""
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}.{ext}'
+    return os.path.join('entries', str(instance.id), 'images', filename)
+
+
 class Entry(Commons):
     """Journal entries DB model"""
     title = models.CharField(max_length=255,
@@ -81,6 +90,8 @@ class Entry(Commons):
         related_name='entries',
     )
     tags = models.ManyToManyField(Tag, related_name='entries', default=[])
+    image = models.ImageField(null=True, blank=True, max_length=300,
+                              upload_to=upload_file_location)
 
     def __str__(self) -> str:
         """String representation"""
